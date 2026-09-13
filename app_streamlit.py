@@ -36,9 +36,6 @@ warnings.filterwarnings("ignore")
 # 2. LOKASI FILE MODEL
 # ============================================================
 
-# Semua file model berada di folder yang sama
-# dengan app_streamlit.py
-
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
