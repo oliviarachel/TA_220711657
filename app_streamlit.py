@@ -45,24 +45,23 @@ BASE_DIR = os.path.dirname(
 
 MODEL_PATH = os.path.join(
     BASE_DIR,
-    "svm_model.pkl"
+    "svm_model_baseline.pkl"
 )
 
 TFIDF_PATH = os.path.join(
     BASE_DIR,
-    "preprocessor_tfidf.pkl"
+    "preprocessor_tfidf_baseline.pkl"
 )
 
 THRESHOLD_PATH = os.path.join(
     BASE_DIR,
-    "threshold_per_label.pkl"
+    "threshold_per_label_baseline.pkl"
 )
 
 CLASSES_PATH = os.path.join(
     BASE_DIR,
-    "classes.pkl"
+    "classes_baseline.pkl"
 )
-
 
 # ============================================================
 # 3. CEK FILE MODEL
