@@ -60,7 +60,7 @@ THRESHOLD_PATH = os.path.join(
 
 CLASSES_PATH = os.path.join(
     BASE_DIR,
-    "classes_baseline.pkl"
+    "classes.pkl"
 )
 
 # ============================================================
