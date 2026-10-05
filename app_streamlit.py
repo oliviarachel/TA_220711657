@@ -1115,79 +1115,13 @@ else:
 
 
             # =================================================
-            # 20. HASIL PREDIKSI
+            # 20. PROBABILITAS ANTAR LABEL
             # =================================================
-
+            
             st.header(
-                "Hasil Prediksi"
+                "Probabilitas Antar Label"
             )
-
-
-            display_result = result_df[
-                [
-                    text_column,
-                    "predicted_labels",
-                    "top_label",
-                    "top_probability",
-                    "top_confidence"
-                ]
-            ].copy()
-
-
-            display_result[
-                "top_probability"
-            ] = (
-                display_result[
-                    "top_probability"
-                ] * 100
-            ).round(2)
-
-
-            display_result[
-                "top_confidence"
-            ] = (
-                display_result[
-                    "top_confidence"
-                ] * 100
-            ).round(2)
-
-
-            display_result = (
-                display_result.rename(
-                    columns={
-
-                        "predicted_labels":
-                            "Label Prediksi",
-
-                        "top_label":
-                            "Label Teratas",
-
-                        "top_probability":
-                            "Probabilitas Teratas (%)",
-
-                        "top_confidence":
-                            "Confidence Level (%)"
-                    }
-                )
-            )
-
-
-            st.dataframe(
-                display_result,
-                use_container_width=True,
-                height=500
-            )
-
-
-            # =================================================
-            # 21. PROBABILITAS SETIAP LABEL
-            # =================================================
-
-            st.header(
-                "Probabilitas Setiap Label"
-            )
-
-
+            
             probability_display = result_df[
                 [text_column]
                 + [
@@ -1195,10 +1129,12 @@ else:
                     for label in class_names
                 ]
             ].copy()
-
-
+            
+            
+            # Ubah probabilitas menjadi persen
+            
             for label in class_names:
-
+            
                 probability_display[
                     f"probability_{label}"
                 ] = (
@@ -1206,8 +1142,10 @@ else:
                         f"probability_{label}"
                     ] * 100
                 ).round(2)
-
-
+            
+            
+            # Rename kolom
+            
             probability_display = (
                 probability_display.rename(
                     columns={
@@ -1217,139 +1155,85 @@ else:
                     }
                 )
             )
-
-
+            
+            
             st.dataframe(
                 probability_display,
                 use_container_width=True,
                 height=500
             )
-
-
+            
+            
             # =================================================
-            # 22. TOTAL PROBABILITAS
+            # 21. LABEL TERPILIH DAN CONFIDENCE LEVEL
             # =================================================
-
-            st.write(
-                "**Total probabilitas:**"
-            )
-
-
-            probability_columns = [
-                f"probability_{label}"
-                for label in class_names
-            ]
-
-
-            total_probability_each_row = (
-                result_df[
-                    probability_columns
-                ].sum(axis=1)
-                * 100
-            )
-
-
-            total_probability_display = pd.DataFrame({
-
-                text_column:
-                    result_df[
-                        text_column
-                    ],
-
-                "Total Probabilitas (%)":
-                    total_probability_each_row.round(2)
-
-            })
-
-
-            st.dataframe(
-                total_probability_display,
-                use_container_width=True
-            )
-
-
-            # =================================================
-            # 23. CONFIDENCE LEVEL LABEL TERPILIH
-            # =================================================
-
+            
             st.header(
-                "Confidence Level Label Terpilih"
+                "Label Terpilih dan Confidence Level"
             )
-
-
+            
+            
             confidence_results = []
-
-
+            
+            
             for row_idx in range(
                 len(result_df)
             ):
-
+            
                 selected_labels = []
-
-
+            
+            
                 for label_idx, label in enumerate(
                     class_names
                 ):
-
+            
+                    # Hanya tampilkan label yang
+                    # memenuhi threshold
+            
                     if predictions[
                         row_idx,
                         label_idx
                     ] == 1:
-
-                        selected_labels.append({
-
-                            text_column:
-                                result_df[
-                                    text_column
-                                ].iloc[row_idx],
-
-                            "Label":
-                                label,
-
-                            "Confidence Level (%)":
-                                round(
-                                    confidence_scores[
-                                        row_idx,
-                                        label_idx
-                                    ] * 100,
-                                    2
-                                ),
-
-                            "Threshold (%)":
-                                round(
-                                    thresholds[
-                                        label_idx
-                                    ] * 100,
-                                    2
-                                )
-                        })
-
-
-                # Tambahkan hasil label terpilih
-
-                confidence_results.extend(
-                    selected_labels
-                )
-
-
-            if len(confidence_results) > 0:
-
-                confidence_display = pd.DataFrame(
-                    confidence_results
-                )
-
-
-                st.dataframe(
-                    confidence_display,
-                    use_container_width=True,
-                    height=500
-                )
-
-            else:
-
-                st.info(
-                    "Tidak ada label yang memenuhi threshold."
-                )
+            
+                        selected_labels.append(
+                            f"{label} "
+                            f"({confidence_scores[row_idx, label_idx] * 100:.2f}%)"
+                        )
+            
+            
+                # Jika tidak ada label yang terpilih
+            
+                if len(selected_labels) == 0:
+            
+                    selected_labels.append(
+                        "tidak_terdeteksi"
+                    )
+            
+            
+                confidence_results.append({
+            
+                    text_column:
+                        result_df[
+                            text_column
+                        ].iloc[row_idx],
+            
+                    "Label Terpilih":
+                        ", ".join(
+                            selected_labels
+                        )
+                })
+            
+            
+            confidence_display = pd.DataFrame(
+                confidence_results
+            )
+            
+            
+            st.dataframe(
+                confidence_display,
+                use_container_width=True,
+                height=500
+            )
 
 
             # =================================================
