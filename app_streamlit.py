@@ -461,15 +461,11 @@ def predict_multilabel(
     # 12A. CONFIDENCE SCORE MODEL
     # ========================================================
     #
-    # Decision score SVM diubah ke rentang 0-1 menggunakan
-    # sigmoid/expit.
+    # Decision score SVM diubah menjadi rentang 0-1
+    # menggunakan sigmoid/expit.
     #
-    # Nilai ini digunakan untuk:
-    # 1. Confidence Level
-    # 2. Threshold per-label
-    #
-    # Confidence setiap label dihitung secara independen.
-    # Oleh karena itu jumlahnya TIDAK harus 100%.
+    # Confidence dihitung secara independen untuk
+    # masing-masing label sehingga tidak harus berjumlah 100%.
     # ========================================================
 
     confidence_scores = expit(
@@ -484,10 +480,7 @@ def predict_multilabel(
     # Softmax digunakan untuk menormalisasi skor antar label.
     #
     # Untuk setiap satu ulasan:
-    # jumlah probabilitas seluruh 12 label = 100%.
-    #
-    # Nilai ini hanya digunakan sebagai probabilitas relatif
-    # antar label pada tampilan aplikasi.
+    # jumlah probabilitas seluruh label = 100%.
     # ========================================================
 
     probabilities = softmax(
@@ -500,11 +493,7 @@ def predict_multilabel(
     # 12C. TERAPKAN THRESHOLD PER-LABEL
     # ========================================================
     #
-    # Threshold tetap diterapkan pada confidence_scores,
-    # bukan pada probabilitas Softmax.
-    #
-    # Dengan demikian threshold per-label dari penelitian
-    # tetap digunakan.
+    # Threshold tetap diterapkan menggunakan confidence score.
     # ========================================================
 
     predictions = (
@@ -538,8 +527,6 @@ def predict_multilabel(
             if value == 1
         ]
 
-
-        # Jika tidak ada label
 
         if len(labels) == 0:
 
@@ -691,10 +678,6 @@ if input_mode == "Single Ulasan":
 
         else:
 
-            # ------------------------------------------------
-            # Buat dataframe satu baris
-            # ------------------------------------------------
-
             df_single = pd.DataFrame({
                 "ulasan": [
                     single_text
@@ -774,7 +757,7 @@ if input_mode == "Single Ulasan":
 
 
             # =================================================
-            # LABEL TERPILIH + CONFIDENCE LEVEL
+            # CONFIDENCE LEVEL
             # =================================================
 
             selected_labels = []
@@ -870,10 +853,6 @@ if input_mode == "Single Ulasan":
                 hide_index=True
             )
 
-
-            # ------------------------------------------------
-            # Total probabilitas
-            # ------------------------------------------------
 
             total_probability = (
                 probabilities[0].sum()
@@ -1149,7 +1128,8 @@ else:
                     text_column,
                     "predicted_labels",
                     "top_label",
-                    "top_probability"
+                    "top_probability",
+                    "top_confidence"
                 ]
             ].copy()
 
@@ -1163,9 +1143,19 @@ else:
             ).round(2)
 
 
+            display_result[
+                "top_confidence"
+            ] = (
+                display_result[
+                    "top_confidence"
+                ] * 100
+            ).round(2)
+
+
             display_result = (
                 display_result.rename(
                     columns={
+
                         "predicted_labels":
                             "Label Prediksi",
 
@@ -1173,7 +1163,10 @@ else:
                             "Label Teratas",
 
                         "top_probability":
-                            "Probabilitas Teratas (%)"
+                            "Probabilitas Teratas (%)",
+
+                        "top_confidence":
+                            "Confidence Level (%)"
                     }
                 )
             )
@@ -1204,8 +1197,6 @@ else:
             ].copy()
 
 
-            # Ubah ke persen
-
             for label in class_names:
 
                 probability_display[
@@ -1216,8 +1207,6 @@ else:
                     ] * 100
                 ).round(2)
 
-
-            # Rename kolom
 
             probability_display = (
                 probability_display.rename(
@@ -1241,6 +1230,11 @@ else:
             # 22. TOTAL PROBABILITAS
             # =================================================
 
+            st.write(
+                "**Total probabilitas:**"
+            )
+
+
             probability_columns = [
                 f"probability_{label}"
                 for label in class_names
@@ -1252,11 +1246,6 @@ else:
                     probability_columns
                 ].sum(axis=1)
                 * 100
-            )
-
-
-            st.write(
-                "**Pemeriksaan total probabilitas:**"
             )
 
 
@@ -1280,11 +1269,11 @@ else:
 
 
             # =================================================
-            # 23. LABEL TERPILIH + CONFIDENCE LEVEL
+            # 23. CONFIDENCE LEVEL LABEL TERPILIH
             # =================================================
 
             st.header(
-                "Label Terpilih dan Confidence Level"
+                "Confidence Level Label Terpilih"
             )
 
 
@@ -1295,6 +1284,9 @@ else:
                 len(result_df)
             ):
 
+                selected_labels = []
+
+
                 for label_idx, label in enumerate(
                     class_names
                 ):
@@ -1304,7 +1296,7 @@ else:
                         label_idx
                     ] == 1:
 
-                        confidence_results.append({
+                        selected_labels.append({
 
                             text_column:
                                 result_df[
@@ -1331,6 +1323,13 @@ else:
                                     2
                                 )
                         })
+
+
+                # Tambahkan hasil label terpilih
+
+                confidence_results.extend(
+                    selected_labels
+                )
 
 
             if len(confidence_results) > 0:
@@ -1362,14 +1361,14 @@ else:
             )
 
 
-            # -------------------------------------------------
-            # Tambahkan probabilitas ke hasil download
-            # -------------------------------------------------
-
             result_percentage = (
                 result_df.copy()
             )
 
+
+            # -------------------------------------------------
+            # Probabilitas dalam persen
+            # -------------------------------------------------
 
             for label in class_names:
 
@@ -1383,7 +1382,7 @@ else:
 
 
             # -------------------------------------------------
-            # Tambahkan confidence level
+            # Confidence level dalam persen
             # -------------------------------------------------
 
             for label in class_names:
@@ -1398,7 +1397,7 @@ else:
 
 
             # -------------------------------------------------
-            # Confidence level hanya untuk label terpilih
+            # Label + confidence
             # -------------------------------------------------
 
             label_confidence_results = []
