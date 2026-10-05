@@ -458,18 +458,21 @@ def predict_multilabel(
 
 
     # ========================================================
-    # 12A. SCORE UNTUK THRESHOLD
+    # 12A. CONFIDENCE SCORE MODEL
     # ========================================================
     #
-    # expit digunakan untuk mengubah decision score
-    # menjadi nilai 0-1.
+    # Decision score SVM diubah ke rentang 0-1 menggunakan
+    # sigmoid/expit.
     #
-    # Nilai ini TIDAK ditampilkan sebagai probabilitas.
-    # Nilai ini hanya digunakan untuk menentukan apakah
-    # suatu label memenuhi threshold per-label.
+    # Nilai ini digunakan untuk:
+    # 1. Confidence Level
+    # 2. Threshold per-label
+    #
+    # Confidence setiap label dihitung secara independen.
+    # Oleh karena itu jumlahnya TIDAK harus 100%.
     # ========================================================
 
-    threshold_scores = expit(
+    confidence_scores = expit(
         decision_scores
     )
 
@@ -478,10 +481,13 @@ def predict_multilabel(
     # 12B. PROBABILITAS RELATIF ANTAR LABEL
     # ========================================================
     #
-    # Softmax digunakan khusus untuk tampilan.
+    # Softmax digunakan untuk menormalisasi skor antar label.
     #
-    # Untuk setiap ulasan, jumlah probabilitas seluruh
-    # 12 label = 100%.
+    # Untuk setiap satu ulasan:
+    # jumlah probabilitas seluruh 12 label = 100%.
+    #
+    # Nilai ini hanya digunakan sebagai probabilitas relatif
+    # antar label pada tampilan aplikasi.
     # ========================================================
 
     probabilities = softmax(
@@ -494,14 +500,15 @@ def predict_multilabel(
     # 12C. TERAPKAN THRESHOLD PER-LABEL
     # ========================================================
     #
-    # Threshold tetap menggunakan threshold_scores
-    # dari expit, BUKAN softmax.
+    # Threshold tetap diterapkan pada confidence_scores,
+    # bukan pada probabilitas Softmax.
     #
-    # Jadi threshold hasil penelitian tetap digunakan.
+    # Dengan demikian threshold per-label dari penelitian
+    # tetap digunakan.
     # ========================================================
 
     predictions = (
-        threshold_scores
+        confidence_scores
         >= thresholds.reshape(
             1,
             -1
@@ -565,13 +572,7 @@ def predict_multilabel(
 
 
     # ========================================================
-    # CONFIDENCE LEVEL UNTUK LABEL TERPILIH
-    # ========================================================
-    #
-    # Confidence level hanya diberikan kepada label
-    # yang benar-benar dipilih oleh threshold.
-    #
-    # Jika suatu label tidak terpilih, confidence = NaN.
+    # CONFIDENCE LEVEL SETIAP LABEL
     # ========================================================
 
     for i, label in enumerate(
@@ -580,11 +581,7 @@ def predict_multilabel(
 
         result[
             f"confidence_{label}"
-        ] = np.where(
-            predictions[:, i] == 1,
-            probabilities[:, i],
-            np.nan
-        )
+        ] = confidence_scores[:, i]
 
 
     # ========================================================
@@ -618,11 +615,28 @@ def predict_multilabel(
     ]
 
 
+    # ========================================================
+    # CONFIDENCE LABEL TERATAS
+    # ========================================================
+
+    result[
+        "top_confidence"
+    ] = [
+        confidence_scores[
+            row,
+            highest_label_index[row]
+        ]
+        for row in range(
+            len(result)
+        )
+    ]
+
+
     return (
         result,
         probabilities,
         predictions,
-        threshold_scores
+        confidence_scores
     )
 
 
@@ -698,7 +712,7 @@ if input_mode == "Single Ulasan":
                         result_df,
                         probabilities,
                         predictions,
-                        threshold_scores
+                        confidence_scores
                     ) = predict_multilabel(
                         df_single,
                         "ulasan"
@@ -765,6 +779,7 @@ if input_mode == "Single Ulasan":
 
             selected_labels = []
 
+
             for i, label in enumerate(
                 class_names
             ):
@@ -772,7 +787,7 @@ if input_mode == "Single Ulasan":
                 if predictions[0, i] == 1:
 
                     confidence = (
-                        probabilities[0, i]
+                        confidence_scores[0, i]
                         * 100
                     )
 
@@ -895,7 +910,7 @@ if input_mode == "Single Ulasan":
                         "Label": label,
 
                         "Confidence Level (%)": (
-                            f"{probabilities[0, i] * 100:.2f}%"
+                            f"{confidence_scores[0, i] * 100:.2f}%"
                         ),
 
                         "Threshold (%)": (
@@ -1100,7 +1115,7 @@ else:
                         result_df,
                         probabilities,
                         predictions,
-                        threshold_scores
+                        confidence_scores
                     ) = predict_multilabel(
                         df_input,
                         text_column
@@ -1301,7 +1316,7 @@ else:
 
                             "Confidence Level (%)":
                                 round(
-                                    probabilities[
+                                    confidence_scores[
                                         row_idx,
                                         label_idx
                                     ] * 100,
@@ -1368,6 +1383,21 @@ else:
 
 
             # -------------------------------------------------
+            # Tambahkan confidence level
+            # -------------------------------------------------
+
+            for label in class_names:
+
+                result_percentage[
+                    f"confidence_{label}"
+                ] = (
+                    result_percentage[
+                        f"confidence_{label}"
+                    ] * 100
+                ).round(2)
+
+
+            # -------------------------------------------------
             # Confidence level hanya untuk label terpilih
             # -------------------------------------------------
 
@@ -1391,7 +1421,7 @@ else:
                     ] == 1:
 
                         confidence = (
-                            probabilities[
+                            confidence_scores[
                                 row_idx,
                                 label_idx
                             ] * 100
